@@ -34,8 +34,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onCreateGame }) => {
         </Button>
       </Card>
       
-      <footer className="absolute bottom-6 text-slate-600 text-sm">
-        Juego social de deducción
+      <footer className="absolute bottom-6 flex flex-col items-center gap-1">
+        <span className="text-slate-600 text-sm">Juego social de deducción</span>
+        <span className="text-slate-700 text-xs opacity-60">Hecho por Camilo Henriquez</span>
       </footer>
     </div>
   );
