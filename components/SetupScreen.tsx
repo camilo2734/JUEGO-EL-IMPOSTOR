@@ -8,15 +8,16 @@ import { GameConfig } from '../types';
 interface SetupScreenProps {
   onStartGame: (config: GameConfig) => void;
   onBack: () => void;
+  initialPlayerNames?: string[];
 }
 
-export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack }) => {
-  const [totalPlayers, setTotalPlayers] = useState(4);
+export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, initialPlayerNames = [] }) => {
+  const [totalPlayers, setTotalPlayers] = useState(initialPlayerNames.length > 0 ? initialPlayerNames.length : 4);
   const [impostorCount, setImpostorCount] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState(CATEGORIES[0].id);
   const [customName, setCustomName] = useState('');
   const [customWords, setCustomWords] = useState('');
-  const [playerNames, setPlayerNames] = useState<string[]>([]);
+  const [playerNames, setPlayerNames] = useState<string[]>(initialPlayerNames.length > 0 ? initialPlayerNames : []);
 
   // Sync playerNames array with totalPlayers count
   useEffect(() => {

@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [currentWord, setCurrentWord] = useState<string>('');
   const [categoryName, setCategoryName] = useState<string>('');
   const [revealIndex, setRevealIndex] = useState(0);
+  const [lastPlayerNames, setLastPlayerNames] = useState<string[]>([]);
 
   const startGame = (config: GameConfig) => {
     let words: string[] = [];
@@ -36,6 +37,9 @@ const App: React.FC = () => {
     const secretWord = words[Math.floor(Math.random() * words.length)];
     setCurrentWord(secretWord);
     setCategoryName(name);
+    
+    // Save names for "Play Again" functionality
+    setLastPlayerNames(config.playerNames);
 
     // Create Players with names
     const newPlayers: Player[] = config.playerNames.map((playerName, i) => ({
@@ -70,7 +74,7 @@ const App: React.FC = () => {
   };
 
   const handleReset = () => {
-    setGameStep(GameStep.HOME);
+    setGameStep(GameStep.SETUP); // Go directly to Setup for "Play Again"
     setPlayers([]);
     setCurrentWord('');
     setRevealIndex(0);
@@ -81,7 +85,13 @@ const App: React.FC = () => {
       case GameStep.HOME:
         return <HomeScreen onCreateGame={() => setGameStep(GameStep.SETUP)} />;
       case GameStep.SETUP:
-        return <SetupScreen onStartGame={startGame} onBack={() => setGameStep(GameStep.HOME)} />;
+        return (
+          <SetupScreen 
+            onStartGame={startGame} 
+            onBack={() => setGameStep(GameStep.HOME)} 
+            initialPlayerNames={lastPlayerNames}
+          />
+        );
       case GameStep.REVEAL_ROLES:
         return (
           <RoleRevealScreen 

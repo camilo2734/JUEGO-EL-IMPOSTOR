@@ -5,22 +5,22 @@ export const CATEGORIES: Category[] = [
     id: 'sports',
     name: 'Deportes',
     words: [
-      'fútbol', 'baloncesto', 'tenis', 'natación', 'ciclismo', 'boxeo', 'karate', 'taekwondo', 'judo', 'béisbol', 
-      'voleibol', 'golf', 'atletismo', 'surf', 'esquí', 'snowboard', 'hockey', 'rugby', 'cricket', 'tiro con arco', 
-      'gimnasia', 'patinaje', 'parkour', 'esgrima', 'buceo', 'remo', 'kayak', 'paracaidismo', 'windsurf', 'triatlón', 
-      'maratón', 'salto alto', 'salto largo', 'levantamiento', 'pesas', 'crossfit', 'ajedrez', 'ping pong', 'squash', 
-      'bádminton', 'fútbol sala', 'automovilismo', 'motocross', 'escalada', 'equitación', 'polo', 'billar', 'bolos'
+      'fútbol', 'baloncesto', 'tenis', 'natación', 'ciclismo', 'boxeo', 'karate', 'taekwondo',  'béisbol', 
+      'voleibol', 'golf', 'atletismo', 'surf', 'esquí',  'hockey', 'rugby',  'tiro con arco', 
+      'gimnasia', 'patinaje',  'esgrima', 'buceo', 'remo', 'kayak', 'paracaidismo', 
+      'maratón',   'levantamiento', 'pesas',  'ajedrez', 'ping pong', 
+      'bádminton', 'fútbol sala',  'motocross',  'equitación','billar', 'bolos'
     ]
   },
   {
     id: 'daily_life',
     name: 'Vida Cotidiana',
     words: [
-      'computadora', 'cama', 'ducha', 'jabón', 'mercado', 'teléfono', 'calle', 'bus', 'taxi', 'parque', 'puerta', 
-      'ventana', 'silla', 'vaso', 'plato', 'cuchara', 'cuchillo', 'tenedor', 'lámpara', 'cable', 'botella', 'mochila', 
-      'cuaderno', 'lápiz', 'cargador', 'sandalia', 'zapato', 'camisa', 'espejo', 'llaves', 'reloj', 'televisor', 
-      'cortina', 'ventilador', 'aire acondicionado', 'trapero', 'escoba', 'nevera', 'microondas', 'fregadero', 
-      'champú', 'frazada', 'almohada', 'jabón líquido', 'wifi', 'puente', 'bicicleta', 'sombrilla'
+      'computadora', 'cama', 'ducha', 'jabón', 'mercado', 'celular', 'calle', 'bus', 'taxi', 'parque', 'puerta', 
+      'ventana', 'silla', 'vaso', 'plato', 'cuchara', 'cuchillo', 'tenedor', 'foco', 'cable', 'botella', 'bolso', 
+      'cuaderno', 'lápiz', 'cargador', 'chancleta', 'zapato', 'camisa', 'espejo', 'llaves', 'reloj', 'televisor', 
+      'cortina', 'ventilador', 'aire acondicionado', 'trapero', 'escoba', 'nevera', 'microondas', 'lava platos', 
+      'champú',  'almohada',  'wifi', 'puente', 'bicicleta', 'sombrilla', 'play station', 'condón',  
     ]
   },
   {
@@ -29,9 +29,9 @@ export const CATEGORIES: Category[] = [
     words: [
       'Colombia', 'Argentina', 'Brasil', 'Chile', 'Perú', 'Ecuador', 'México', 'Canadá', 'Estados Unidos', 'España', 
       'Francia', 'Italia', 'Alemania', 'Portugal', 'Grecia', 'Turquía', 'Japón', 'Corea', 'China', 'India', 'Rusia', 
-      'Australia', 'Egipto', 'Sudáfrica', 'Marruecos', 'Nigeria', 'Suecia', 'Noruega', 'Finlandia', 'Dinamarca', 
-      'Polonia', 'Ucrania', 'Arabia Saudita', 'Israel', 'Indonesia', 'Filipinas', 'Vietnam', 'Tailandia', 
-      'Nueva Zelanda', 'Panamá', 'Costa Rica', 'Uruguay', 'Bolivia', 'Paraguay', 'Honduras', 'Guatemala'
+      'Australia', 'Egipto', 'Sudáfrica', 'Marruecos', 'Nigeria', 
+      'Polonia', 'Ucrania', 'Arabia Saudita', 'Israel',
+       'Panamá', 'Costa Rica', 'Uruguay', 'Bolivia'
     ]
   },
   {
@@ -40,9 +40,10 @@ export const CATEGORIES: Category[] = [
     words: [
       'pizza', 'hamburguesa', 'pasta', 'arroz', 'sushi', 'sopa', 'carne asada', 'pollo frito', 'empanada', 'arepa', 
       'taco', 'burrito', 'hot dog', 'ensalada', 'pan', 'croissant', 'helado', 'yogur', 'avena', 'lasaña', 'brownie', 
-      'galleta', 'chocolate', 'quesadilla', 'ramen', 'pescado frito', 'camarones', 'ceviche', 'lentejas', 'fríjoles', 
-      'sancocho', 'tamal', 'pancakes', 'waffle', 'sandwich', 'enchilada', 'paella', 'hummus', 'kebab', 'shawarma', 
-      'curry', 'mazorca', 'pastel', 'empanadilla', 'nachos'
+      'galleta', 'chocolate', 'quesadilla',  'pescado frito', 'camarones', 'ceviche', 'lentejas', 'fríjoles', 
+      'sancocho',  'pancakes', 'waffle', 'sandwich',  'paella', 
+       'mazorca', 'pastel', 'empanada', 'nachos', 'deditos', 'salchipapa','arepa picada','chuzo pan','mazorca','perro caliente',
+       'raspao','boli','fresas con crema','tres leche','flan','napoleon','panocha',
     ]
   },
   {
@@ -52,8 +53,8 @@ export const CATEGORIES: Category[] = [
       'playa', 'montaña', 'bosque', 'desierto', 'río', 'lago', 'parque', 'museo', 'estadio', 'aeropuerto', 'estación', 
       'hospital', 'colegio', 'universidad', 'centro comercial', 'supermercado', 'hotel', 'restaurante', 'cine', 'teatro', 
       'iglesia', 'oficina', 'terminal', 'puerto', 'mercado', 'biblioteca', 'gimnasio', 'fábrica', 'barrio', 'pueblo', 
-      'autopista', 'puente', 'zoológico', 'acuario', 'cascada', 'volcán', 'isla', 'cabaña', 'castillo', 'torre', 
-      'granja', 'motel', 'librería'
+       'puente', 'zoológico', 'acuario', 'cascada', 'volcán', 'isla', 'cabaña', 'castillo', 'torre', 
+      'granja', 'motel', 'la escollera','one shot','aitana','parque de los novios'
     ]
   },
   {
