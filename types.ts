@@ -1,10 +1,11 @@
+
 export type Role = 'CIVILIAN' | 'IMPOSTOR';
 
 export interface Player {
   id: number;
   name: string;
   role: Role;
-  word?: string; // Impostors don't have a word
+  word?: string; // Impostors might have a hint phrase now
 }
 
 export enum GameStep {
@@ -15,17 +16,23 @@ export enum GameStep {
   SUMMARY = 'SUMMARY'
 }
 
+export interface WordItem {
+  target: string;
+  hint: string;
+}
+
 export interface Category {
   id: string;
   name: string;
-  words: string[];
+  items: WordItem[];
   isCustom?: boolean;
 }
 
 export interface GameConfig {
   totalPlayers: number;
   impostorCount: number;
-  selectedCategoryId: string;
+  selectedCategoryIds: string[];
+  hintsEnabled: boolean;
   customCategoryName: string;
   customCategoryWords: string;
   playerNames: string[];

@@ -4,7 +4,7 @@ import { SetupScreen } from './components/SetupScreen';
 import { RoleRevealScreen } from './components/RoleRevealScreen';
 import { GameScreen } from './components/GameScreen';
 import { SummaryScreen } from './components/SummaryScreen';
-import { GameStep, GameConfig, Player } from './types';
+import { GameStep, GameConfig, Player, WordItem } from './types';
 import { CATEGORIES } from './constants';
 
 const App: React.FC = () => {
@@ -14,32 +14,54 @@ const App: React.FC = () => {
   const [categoryName, setCategoryName] = useState<string>('');
   const [revealIndex, setRevealIndex] = useState(0);
   const [lastPlayerNames, setLastPlayerNames] = useState<string[]>([]);
+  const [isHintsMode, setIsHintsMode] = useState(false);
 
   const startGame = (config: GameConfig) => {
-    let words: string[] = [];
-    let name = '';
+    // 1. Resolve selected categories into a list of items
+    const activePools: { name: string, items: WordItem[] }[] = [];
 
-    // Handle Category Selection
-    if (config.selectedCategoryId === 'custom') {
-      words = config.customCategoryWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
-      name = config.customCategoryName || 'Personalizada';
-    } else {
-      const category = CATEGORIES.find(c => c.id === config.selectedCategoryId);
-      if (category) {
-        words = category.words;
-        name = category.name;
+    // Add standard categories
+    config.selectedCategoryIds.forEach(id => {
+      if (id === 'custom') return;
+      const cat = CATEGORIES.find(c => c.id === id);
+      if (cat) activePools.push({ 
+        name: cat.name, 
+        items: cat.items
+      });
+    });
+
+    // Add custom category if selected
+    if (config.selectedCategoryIds.includes('custom') && config.customCategoryWords.length > 0) {
+      const words = config.customCategoryWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
+      if (words.length > 0) {
+        // For custom categories, we can't generate descriptive hints easily.
+        // We'll use a generic fallback.
+        const customItems: WordItem[] = words.map(w => ({
+          target: w,
+          hint: 'Improvisa' 
+        }));
+        
+        activePools.push({ 
+          name: config.customCategoryName || 'Personalizada', 
+          items: customItems
+        });
       }
     }
 
-    if (words.length === 0) return;
+    if (activePools.length === 0) return;
 
-    // Select random word
-    const secretWord = words[Math.floor(Math.random() * words.length)];
-    setCurrentWord(secretWord);
-    setCategoryName(name);
+    // 2. Pick a random pool
+    const selectedPool = activePools[Math.floor(Math.random() * activePools.length)];
     
-    // Save names for "Play Again" functionality
+    // 3. Pick a random item (Target + Hint)
+    const selectedItem = selectedPool.items[Math.floor(Math.random() * selectedPool.items.length)];
+    const secretWord = selectedItem.target;
+    const hintWord = selectedItem.hint;
+
+    setCurrentWord(secretWord);
+    setCategoryName(selectedPool.name); 
     setLastPlayerNames(config.playerNames);
+    setIsHintsMode(config.hintsEnabled);
 
     // Create Players with names
     const newPlayers: Player[] = config.playerNames.map((playerName, i) => ({
@@ -55,7 +77,13 @@ const App: React.FC = () => {
       const randomIndex = Math.floor(Math.random() * config.totalPlayers);
       if (newPlayers[randomIndex].role === 'CIVILIAN') {
         newPlayers[randomIndex].role = 'IMPOSTOR';
-        delete newPlayers[randomIndex].word;
+        
+        // If hints enabled, give them the descriptive hint
+        if (config.hintsEnabled) {
+          newPlayers[randomIndex].word = hintWord;
+        } else {
+          delete newPlayers[randomIndex].word;
+        }
         impostorsAssigned++;
       }
     }
@@ -74,7 +102,7 @@ const App: React.FC = () => {
   };
 
   const handleReset = () => {
-    setGameStep(GameStep.SETUP); // Go directly to Setup for "Play Again"
+    setGameStep(GameStep.SETUP);
     setPlayers([]);
     setCurrentWord('');
     setRevealIndex(0);
@@ -99,6 +127,7 @@ const App: React.FC = () => {
             playerIndex={revealIndex}
             totalPlayers={players.length}
             onNext={handleNextReveal}
+            hintsEnabled={isHintsMode}
           />
         );
       case GameStep.PLAYING:
@@ -122,8 +151,15 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-950 min-h-screen text-slate-100 font-sans selection:bg-indigo-500/30">
-      {renderScreen()}
+    <div className="relative min-h-screen text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-black z-0 pointer-events-none"></div>
+      <div className="fixed inset-0 bg-grid-pattern z-0 pointer-events-none opacity-40"></div>
+      
+      {/* Content */}
+      <div className="relative z-10">
+        {renderScreen()}
+      </div>
     </div>
   );
 };

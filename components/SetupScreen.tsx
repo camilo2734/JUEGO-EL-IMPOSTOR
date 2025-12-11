@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User } from 'lucide-react';
+import { ArrowLeft, User, Check, Lightbulb, Settings } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { CATEGORIES } from '../constants';
@@ -14,22 +14,22 @@ interface SetupScreenProps {
 export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, initialPlayerNames = [] }) => {
   const [totalPlayers, setTotalPlayers] = useState(initialPlayerNames.length > 0 ? initialPlayerNames.length : 4);
   const [impostorCount, setImpostorCount] = useState(1);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(CATEGORIES[0].id);
+  
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([CATEGORIES[0].id]);
+  const [hintsEnabled, setHintsEnabled] = useState(false);
+
   const [customName, setCustomName] = useState('');
   const [customWords, setCustomWords] = useState('');
   const [playerNames, setPlayerNames] = useState<string[]>(initialPlayerNames.length > 0 ? initialPlayerNames : []);
 
-  // Sync playerNames array with totalPlayers count
   useEffect(() => {
     setPlayerNames(prev => {
       const newNames = [...prev];
       if (totalPlayers > prev.length) {
-        // Add empty strings for new players
         for (let i = prev.length; i < totalPlayers; i++) {
           newNames.push('');
         }
       } else {
-        // Truncate if fewer players
         newNames.length = totalPlayers;
       }
       return newNames;
@@ -42,10 +42,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
     setPlayerNames(newNames);
   };
 
-  const isCustom = selectedCategoryId === 'custom';
+  const toggleCategory = (id: string) => {
+    setSelectedCategoryIds(prev => {
+      if (prev.includes(id)) {
+        if (prev.length === 1) return prev;
+        return prev.filter(catId => catId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const isCustomSelected = selectedCategoryIds.includes('custom');
 
   const handleStart = () => {
-    // Fill empty names with defaults if necessary
     const finalNames = playerNames.map((name, index) => 
       name.trim() === '' ? `Jugador ${index + 1}` : name.trim()
     );
@@ -53,7 +63,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
     onStartGame({
       totalPlayers,
       impostorCount,
-      selectedCategoryId,
+      selectedCategoryIds,
+      hintsEnabled,
       customCategoryName: customName,
       customCategoryWords: customWords,
       playerNames: finalNames
@@ -73,39 +84,47 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
   const decrementImpostors = () => setImpostorCount(i => Math.max(1, i - 1));
 
   return (
-    <div className="min-h-screen p-6 flex flex-col items-center justify-center">
-      <Card className="space-y-8 w-full max-w-lg">
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
+    <div className="min-h-screen p-4 flex flex-col items-center">
+      <Card className="space-y-8 w-full max-w-lg my-8">
+        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+          <button onClick={onBack} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all">
             <ArrowLeft size={24} />
           </button>
-          <h2 className="text-2xl font-bold text-slate-100">Configuración</h2>
-          <div className="w-6"></div>
+          <div className="flex items-center gap-2">
+            <Settings size={20} className="text-indigo-400" />
+            <h2 className="text-xl font-bold text-white tracking-wide">CONFIGURACIÓN</h2>
+          </div>
+          <div className="w-8"></div>
         </div>
 
         {/* Player Count */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-slate-400 uppercase tracking-wider">Jugadores</label>
-          <div className="flex items-center justify-between bg-slate-800 p-2 rounded-2xl border border-slate-700">
-            <button onClick={decrementPlayers} className="w-12 h-12 flex items-center justify-center bg-slate-700 rounded-xl text-white hover:bg-slate-600 transition">-</button>
-            <span className="text-2xl font-bold text-white">{totalPlayers}</span>
-            <button onClick={incrementPlayers} className="w-12 h-12 flex items-center justify-center bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 transition">+</button>
+        <div className="space-y-4">
+          <div className="flex justify-between items-end">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Jugadores</label>
+            <span className="text-xs text-indigo-400 font-semibold">{totalPlayers} activos</span>
+          </div>
+          <div className="flex items-center justify-between bg-black/40 p-1.5 rounded-2xl border border-white/10">
+            <button onClick={decrementPlayers} className="w-14 h-12 flex items-center justify-center bg-white/5 rounded-xl text-white hover:bg-white/10 transition active:scale-95 text-xl font-medium">-</button>
+            <span className="text-3xl font-black text-white">{totalPlayers}</span>
+            <button onClick={incrementPlayers} className="w-14 h-12 flex items-center justify-center bg-indigo-600 rounded-xl text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 transition active:scale-95 text-xl font-medium">+</button>
           </div>
         </div>
 
         {/* Player Names Input Grid */}
-        <div className="space-y-3 animate-fade-in">
-          <label className="text-sm font-medium text-slate-400 uppercase tracking-wider">Nombres de Jugadores</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-4 animate-fade-in">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nombres</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
             {playerNames.map((name, index) => (
-              <div key={index} className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <div key={index} className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User size={16} className="text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                </div>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => handleNameChange(index, e.target.value)}
                   placeholder={`Jugador ${index + 1}`}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-10 pr-3 text-white text-sm focus:border-indigo-500 outline-none transition-colors"
+                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 pr-3 text-white text-sm focus:border-indigo-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
                 />
               </div>
             ))}
@@ -113,57 +132,99 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
         </div>
 
         {/* Impostor Count */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-slate-400 uppercase tracking-wider">Impostores</label>
-          <div className="flex items-center justify-between bg-slate-800 p-2 rounded-2xl border border-slate-700">
-            <button onClick={decrementImpostors} className="w-12 h-12 flex items-center justify-center bg-slate-700 rounded-xl text-white hover:bg-slate-600 transition">-</button>
-            <span className="text-2xl font-bold text-rose-500">{impostorCount}</span>
-            <button onClick={incrementImpostors} className="w-12 h-12 flex items-center justify-center bg-rose-600 rounded-xl text-white hover:bg-rose-500 transition">+</button>
+        <div className="space-y-4">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Impostores</label>
+          <div className="flex items-center justify-between bg-black/40 p-1.5 rounded-2xl border border-white/10">
+            <button onClick={decrementImpostors} className="w-14 h-12 flex items-center justify-center bg-white/5 rounded-xl text-white hover:bg-white/10 transition active:scale-95 text-xl font-medium">-</button>
+            <span className="text-3xl font-black text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]">{impostorCount}</span>
+            <button onClick={incrementImpostors} className="w-14 h-12 flex items-center justify-center bg-rose-600 rounded-xl text-white hover:bg-rose-500 shadow-lg shadow-rose-500/20 transition active:scale-95 text-xl font-medium">+</button>
+          </div>
+        </div>
+
+        {/* Hints Toggle */}
+        <div 
+          className={`relative overflow-hidden p-4 rounded-xl border transition-all cursor-pointer group ${hintsEnabled ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600'}`} 
+          onClick={() => setHintsEnabled(!hintsEnabled)}
+        >
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-full transition-colors ${hintsEnabled ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-slate-700/50 text-slate-400'}`}>
+                <Lightbulb size={20} fill={hintsEnabled ? "currentColor" : "none"} />
+              </div>
+              <div>
+                <p className={`font-bold transition-colors ${hintsEnabled ? 'text-amber-200' : 'text-slate-300'}`}>Modo Pistas</p>
+                <p className="text-xs text-slate-500 mt-0.5">Ayuda al impostor con una palabra clave</p>
+              </div>
+            </div>
+            <div className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${hintsEnabled ? 'bg-amber-500' : 'bg-slate-700'}`}>
+              <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${hintsEnabled ? 'left-7' : 'left-1'}`} />
+            </div>
           </div>
         </div>
 
         {/* Category Selection */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-slate-400 uppercase tracking-wider">Categoría</label>
-          <select 
-            value={selectedCategoryId}
-            onChange={(e) => setSelectedCategoryId(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
-          >
-            {CATEGORIES.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-            <option value="custom">+ Crear Personalizada</option>
-          </select>
+        <div className="space-y-4">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Categorías</label>
+          <div className="grid grid-cols-2 gap-3">
+            {CATEGORIES.map(cat => {
+              const isSelected = selectedCategoryIds.includes(cat.id);
+              return (
+                <button 
+                  key={cat.id}
+                  onClick={() => toggleCategory(cat.id)}
+                  className={`relative p-3 rounded-xl border text-sm font-semibold transition-all text-left flex items-center justify-between overflow-hidden group ${
+                    isSelected 
+                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/30' 
+                      : 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
+                  }`}
+                >
+                  <span className="relative z-10">{cat.name}</span>
+                  {isSelected && <Check size={16} className="text-white relative z-10" />}
+                  {isSelected && <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-600 opacity-100" />}
+                </button>
+              );
+            })}
+            <button 
+              onClick={() => toggleCategory('custom')}
+              className={`relative p-3 rounded-xl border text-sm font-semibold transition-all text-left flex items-center justify-between overflow-hidden ${
+                selectedCategoryIds.includes('custom')
+                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/30' 
+                  : 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
+              }`}
+            >
+               <span className="relative z-10">Personalizada</span>
+               {selectedCategoryIds.includes('custom') && <Check size={16} className="relative z-10" />}
+            </button>
+          </div>
         </div>
 
         {/* Custom Category Fields */}
-        {isCustom && (
-          <div className="space-y-4 pt-4 border-t border-slate-800 animate-fade-in">
+        {isCustomSelected && (
+          <div className="space-y-4 pt-6 border-t border-white/5 animate-fade-in bg-black/20 -mx-8 px-8 pb-4">
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">Nombre Categoría</label>
+              <label className="text-xs font-bold text-slate-500 mb-2 block uppercase">Nombre de Categoría</label>
               <input
                 type="text"
                 placeholder="Ej. Mis Amigos"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-indigo-500 outline-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:border-indigo-500 outline-none"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">Palabras (separadas por comas)</label>
+              <label className="text-xs font-bold text-slate-500 mb-2 block uppercase">Palabras (separadas por comas)</label>
               <textarea
                 placeholder="Juan, Pedro, María, Sofía..."
                 value={customWords}
                 onChange={(e) => setCustomWords(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white h-24 focus:border-indigo-500 outline-none resize-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white h-24 focus:border-indigo-500 outline-none resize-none"
               />
             </div>
           </div>
         )}
 
-        <Button onClick={handleStart} fullWidth disabled={isCustom && (!customName || !customWords)}>
-          Iniciar Partida
+        <Button onClick={handleStart} fullWidth disabled={isCustomSelected && (!customName || !customWords)} className="mt-4">
+          Comenzar Partida
         </Button>
       </Card>
     </div>
