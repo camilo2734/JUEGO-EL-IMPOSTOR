@@ -26,6 +26,7 @@ export interface Category {
   name: string;
   items: WordItem[];
   isCustom?: boolean;
+  isLocked?: boolean;
 }
 
 export interface GameConfig {

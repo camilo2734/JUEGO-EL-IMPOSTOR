@@ -7,13 +7,26 @@ import { SummaryScreen } from './components/SummaryScreen';
 import { GameStep, GameConfig, Player, WordItem } from './types';
 import { CATEGORIES } from './constants';
 
+const STORAGE_KEY = 'impostor_game_config_v1';
+
 const App: React.FC = () => {
   const [gameStep, setGameStep] = useState<GameStep>(GameStep.HOME);
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentWord, setCurrentWord] = useState<string>('');
   const [categoryName, setCategoryName] = useState<string>('');
   const [revealIndex, setRevealIndex] = useState(0);
-  const [lastPlayerNames, setLastPlayerNames] = useState<string[]>([]);
+  
+  // Initialize config from LocalStorage if available so custom categories persist
+  const [lastConfig, setLastConfig] = useState<GameConfig | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Error loading saved config", e);
+      return null;
+    }
+  });
+  
   const [isHintsMode, setIsHintsMode] = useState(false);
 
   const startGame = (config: GameConfig) => {
@@ -60,7 +73,15 @@ const App: React.FC = () => {
 
     setCurrentWord(secretWord);
     setCategoryName(selectedPool.name); 
-    setLastPlayerNames(config.playerNames);
+    
+    // Save config to state and LocalStorage to persist custom categories
+    setLastConfig(config);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    } catch (e) {
+      console.error("Error saving config", e);
+    }
+
     setIsHintsMode(config.hintsEnabled);
 
     // Create Players with names
@@ -117,7 +138,7 @@ const App: React.FC = () => {
           <SetupScreen 
             onStartGame={startGame} 
             onBack={() => setGameStep(GameStep.HOME)} 
-            initialPlayerNames={lastPlayerNames}
+            lastConfig={lastConfig}
           />
         );
       case GameStep.REVEAL_ROLES:

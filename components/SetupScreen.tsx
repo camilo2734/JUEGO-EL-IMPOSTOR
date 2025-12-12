@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Check, Lightbulb, Settings } from 'lucide-react';
+import { ArrowLeft, User, Check, Lightbulb, Settings, Lock, Unlock, X } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { CATEGORIES } from '../constants';
@@ -8,19 +9,42 @@ import { GameConfig } from '../types';
 interface SetupScreenProps {
   onStartGame: (config: GameConfig) => void;
   onBack: () => void;
-  initialPlayerNames?: string[];
+  lastConfig: GameConfig | null;
 }
 
-export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, initialPlayerNames = [] }) => {
-  const [totalPlayers, setTotalPlayers] = useState(initialPlayerNames.length > 0 ? initialPlayerNames.length : 4);
-  const [impostorCount, setImpostorCount] = useState(1);
+export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, lastConfig }) => {
+  const [totalPlayers, setTotalPlayers] = useState(lastConfig?.totalPlayers ?? 4);
+  const [impostorCount, setImpostorCount] = useState(lastConfig?.impostorCount ?? 1);
   
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([CATEGORIES[0].id]);
-  const [hintsEnabled, setHintsEnabled] = useState(false);
+  const [hintsEnabled, setHintsEnabled] = useState(lastConfig?.hintsEnabled ?? false);
+  const [customName, setCustomName] = useState(lastConfig?.customCategoryName ?? '');
+  const [customWords, setCustomWords] = useState(lastConfig?.customCategoryWords ?? '');
+  const [playerNames, setPlayerNames] = useState<string[]>(lastConfig?.playerNames ?? []);
 
-  const [customName, setCustomName] = useState('');
-  const [customWords, setCustomWords] = useState('');
-  const [playerNames, setPlayerNames] = useState<string[]>(initialPlayerNames.length > 0 ? initialPlayerNames : []);
+  // Locking Logic
+  const [unlockedCategories, setUnlockedCategories] = useState<string[]>([]);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [categoryToUnlock, setCategoryToUnlock] = useState<string | null>(null);
+  const [unlockCode, setUnlockCode] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Initialize selected categories, ensuring no locked ones are selected by default unless unlocked (which is none on mount)
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(() => {
+    // Default to the first non-locked category found
+    const defaultId = CATEGORIES.find(c => !c.isLocked)?.id || CATEGORIES[0].id;
+    
+    const saved = lastConfig?.selectedCategoryIds;
+    if (!saved || saved.length === 0) return [defaultId];
+
+    // Filter out categories that are locked (since we start fresh session-wise with 0 unlocked)
+    const validIds = saved.filter(id => {
+      if (id === 'custom') return true;
+      const cat = CATEGORIES.find(c => c.id === id);
+      return cat && !cat.isLocked;
+    });
+
+    return validIds.length > 0 ? validIds : [defaultId];
+  });
 
   useEffect(() => {
     setPlayerNames(prev => {
@@ -43,6 +67,17 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
   };
 
   const toggleCategory = (id: string) => {
+    const category = CATEGORIES.find(c => c.id === id);
+    
+    // Check lock status: If locked and NOT unlocked
+    if (category?.isLocked && !unlockedCategories.includes(id)) {
+      setCategoryToUnlock(id);
+      setUnlockCode('');
+      setErrorMsg('');
+      setShowUnlockModal(true);
+      return;
+    }
+
     setSelectedCategoryIds(prev => {
       if (prev.includes(id)) {
         if (prev.length === 1) return prev;
@@ -53,9 +88,36 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
     });
   };
 
+  const handleUnlockSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (unlockCode === '2711') {
+      if (categoryToUnlock) {
+        setUnlockedCategories(prev => [...prev, categoryToUnlock]);
+        // Automatically select it after unlocking
+        setSelectedCategoryIds(prev => [...prev, categoryToUnlock]);
+      }
+      setShowUnlockModal(false);
+      setCategoryToUnlock(null);
+    } else {
+      setErrorMsg('Código incorrecto');
+    }
+  };
+
   const isCustomSelected = selectedCategoryIds.includes('custom');
 
   const handleStart = () => {
+    // Final security check: Remove any locked category that isn't unlocked
+    const safeSelectedIds = selectedCategoryIds.filter(id => {
+       if (id === 'custom') return true;
+       const cat = CATEGORIES.find(c => c.id === id);
+       return cat && (!cat.isLocked || unlockedCategories.includes(id));
+    });
+
+    // Fallback if everything was filtered out
+    const finalSelectedIds = safeSelectedIds.length > 0 
+        ? safeSelectedIds 
+        : [CATEGORIES.find(c => !c.isLocked)?.id || CATEGORIES[0].id];
+
     const finalNames = playerNames.map((name, index) => 
       name.trim() === '' ? `Jugador ${index + 1}` : name.trim()
     );
@@ -63,7 +125,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
     onStartGame({
       totalPlayers,
       impostorCount,
-      selectedCategoryIds,
+      selectedCategoryIds: finalSelectedIds,
       hintsEnabled,
       customCategoryName: customName,
       customCategoryWords: customWords,
@@ -167,7 +229,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Categorías</label>
           <div className="grid grid-cols-2 gap-3">
             {CATEGORIES.map(cat => {
+              const isLocked = cat.isLocked && !unlockedCategories.includes(cat.id);
               const isSelected = selectedCategoryIds.includes(cat.id);
+              
               return (
                 <button 
                   key={cat.id}
@@ -175,12 +239,22 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
                   className={`relative p-3 rounded-xl border text-sm font-semibold transition-all text-left flex items-center justify-between overflow-hidden group ${
                     isSelected 
                       ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/30' 
-                      : 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
+                      : isLocked 
+                        ? 'bg-slate-900/60 border-rose-500/30 text-rose-300/60'
+                        : 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-800 hover:border-slate-600'
                   }`}
                 >
-                  <span className="relative z-10">{cat.name}</span>
-                  {isSelected && <Check size={16} className="text-white relative z-10" />}
-                  {isSelected && <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-600 opacity-100" />}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {cat.name}
+                  </span>
+                  {isLocked ? (
+                    <Lock size={16} className="text-rose-400 relative z-10" />
+                  ) : (
+                    <>
+                      {isSelected && <Check size={16} className="text-white relative z-10" />}
+                      {isSelected && <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-600 opacity-100" />}
+                    </>
+                  )}
                 </button>
               );
             })}
@@ -227,6 +301,48 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, i
           Comenzar Partida
         </Button>
       </Card>
+
+      {/* Unlock Modal */}
+      {showUnlockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowUnlockModal(false)} />
+          <div className="relative bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in">
+            <button 
+              onClick={() => setShowUnlockModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
+                <Lock size={32} className="text-rose-500" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Categoría Bloqueada</h3>
+              <p className="text-slate-400 text-sm">Ingresa el código de seguridad para acceder a este contenido.</p>
+            </div>
+
+            <form onSubmit={handleUnlockSubmit} className="space-y-4">
+              <div>
+                <input 
+                  type="password" 
+                  inputMode="numeric"
+                  placeholder="Código de acceso"
+                  value={unlockCode}
+                  onChange={(e) => setUnlockCode(e.target.value)}
+                  className="w-full bg-black/40 border border-slate-700 rounded-xl px-4 py-3 text-center text-2xl font-bold tracking-widest text-white focus:border-rose-500 outline-none transition-all placeholder:text-slate-700 placeholder:text-sm placeholder:tracking-normal placeholder:font-normal"
+                  autoFocus
+                />
+                {errorMsg && <p className="text-rose-500 text-xs text-center mt-2 font-bold">{errorMsg}</p>}
+              </div>
+              
+              <Button type="submit" fullWidth variant="danger">
+                Desbloquear
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
