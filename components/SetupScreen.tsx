@@ -12,6 +12,8 @@ interface SetupScreenProps {
   lastConfig: GameConfig | null;
 }
 
+const UNLOCKED_STORAGE_KEY = 'impostor_unlocked_categories_v1';
+
 export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, lastConfig }) => {
   const [totalPlayers, setTotalPlayers] = useState(lastConfig?.totalPlayers ?? 4);
   const [impostorCount, setImpostorCount] = useState(lastConfig?.impostorCount ?? 1);
@@ -22,13 +24,24 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
   const [playerNames, setPlayerNames] = useState<string[]>(lastConfig?.playerNames ?? []);
 
   // Locking Logic
-  const [unlockedCategories, setUnlockedCategories] = useState<string[]>([]);
+  // Helper to read persisted unlocked categories
+  const getSavedUnlocked = (): string[] => {
+    try {
+      const saved = localStorage.getItem(UNLOCKED_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error loading unlocked categories", e);
+      return [];
+    }
+  };
+
+  const [unlockedCategories, setUnlockedCategories] = useState<string[]>(getSavedUnlocked);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [categoryToUnlock, setCategoryToUnlock] = useState<string | null>(null);
   const [unlockCode, setUnlockCode] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Initialize selected categories, ensuring no locked ones are selected by default unless unlocked (which is none on mount)
+  // Initialize selected categories
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(() => {
     // Default to the first non-locked category found
     const defaultId = CATEGORIES.find(c => !c.isLocked)?.id || CATEGORIES[0].id;
@@ -36,11 +49,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
     const saved = lastConfig?.selectedCategoryIds;
     if (!saved || saved.length === 0) return [defaultId];
 
-    // Filter out categories that are locked (since we start fresh session-wise with 0 unlocked)
+    // Get currently unlocked list to validate selection
+    const currentUnlocked = getSavedUnlocked();
+
+    // Filter out categories that are locked AND not in the unlocked list
     const validIds = saved.filter(id => {
       if (id === 'custom') return true;
       const cat = CATEGORIES.find(c => c.id === id);
-      return cat && !cat.isLocked;
+      // It's valid if the category exists AND (it's not locked OR we have unlocked it previously)
+      return cat && (!cat.isLocked || currentUnlocked.includes(id));
     });
 
     return validIds.length > 0 ? validIds : [defaultId];
@@ -92,7 +109,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
     e.preventDefault();
     if (unlockCode === '2711') {
       if (categoryToUnlock) {
-        setUnlockedCategories(prev => [...prev, categoryToUnlock]);
+        // Update state and localStorage
+        const newUnlockedList = [...unlockedCategories, categoryToUnlock];
+        setUnlockedCategories(newUnlockedList);
+        try {
+          localStorage.setItem(UNLOCKED_STORAGE_KEY, JSON.stringify(newUnlockedList));
+        } catch (e) {
+          console.error("Error saving unlocked categories", e);
+        }
+
         // Automatically select it after unlocking
         setSelectedCategoryIds(prev => [...prev, categoryToUnlock]);
       }

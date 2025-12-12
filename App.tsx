@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HomeScreen } from './components/HomeScreen';
 import { SetupScreen } from './components/SetupScreen';
@@ -156,6 +157,7 @@ const App: React.FC = () => {
           <GameScreen 
             onEndGame={() => setGameStep(GameStep.SUMMARY)} 
             categoryName={categoryName}
+            players={players}
           />
         );
       case GameStep.SUMMARY:
