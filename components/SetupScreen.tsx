@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Check, Lightbulb, Settings, Lock, Unlock, X } from 'lucide-react';
+import { ArrowLeft, User, Users, Check, Lightbulb, Settings, Lock, Unlock, X, Eye } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { CATEGORIES } from '../constants';
@@ -19,6 +19,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
   const [impostorCount, setImpostorCount] = useState(lastConfig?.impostorCount ?? 1);
   
   const [hintsEnabled, setHintsEnabled] = useState(lastConfig?.hintsEnabled ?? false);
+  const [impostorsKnowEachOther, setImpostorsKnowEachOther] = useState(lastConfig?.impostorsKnowEachOther ?? false);
+  
   const [customName, setCustomName] = useState(lastConfig?.customCategoryName ?? '');
   const [customWords, setCustomWords] = useState(lastConfig?.customCategoryWords ?? '');
   const [playerNames, setPlayerNames] = useState<string[]>(lastConfig?.playerNames ?? []);
@@ -152,6 +154,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
       impostorCount,
       selectedCategoryIds: finalSelectedIds,
       hintsEnabled,
+      impostorsKnowEachOther,
       customCategoryName: customName,
       customCategoryWords: customWords,
       playerNames: finalNames
@@ -228,23 +231,47 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
           </div>
         </div>
 
-        {/* Hints Toggle */}
-        <div 
-          className={`relative overflow-hidden p-4 rounded-xl border transition-all cursor-pointer group ${hintsEnabled ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600'}`} 
-          onClick={() => setHintsEnabled(!hintsEnabled)}
-        >
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-full transition-colors ${hintsEnabled ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-slate-700/50 text-slate-400'}`}>
-                <Lightbulb size={20} fill={hintsEnabled ? "currentColor" : "none"} />
+        {/* Toggles Container */}
+        <div className="space-y-3">
+          {/* Hints Toggle */}
+          <div 
+            className={`relative overflow-hidden p-4 rounded-xl border transition-all cursor-pointer group ${hintsEnabled ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600'}`} 
+            onClick={() => setHintsEnabled(!hintsEnabled)}
+          >
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full transition-colors ${hintsEnabled ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-slate-700/50 text-slate-400'}`}>
+                  <Lightbulb size={20} fill={hintsEnabled ? "currentColor" : "none"} />
+                </div>
+                <div>
+                  <p className={`font-bold transition-colors ${hintsEnabled ? 'text-amber-200' : 'text-slate-300'}`}>Modo Pistas</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Ayuda al impostor con una palabra clave</p>
+                </div>
               </div>
-              <div>
-                <p className={`font-bold transition-colors ${hintsEnabled ? 'text-amber-200' : 'text-slate-300'}`}>Modo Pistas</p>
-                <p className="text-xs text-slate-500 mt-0.5">Ayuda al impostor con una palabra clave</p>
+              <div className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${hintsEnabled ? 'bg-amber-500' : 'bg-slate-700'}`}>
+                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${hintsEnabled ? 'left-7' : 'left-1'}`} />
               </div>
             </div>
-            <div className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${hintsEnabled ? 'bg-amber-500' : 'bg-slate-700'}`}>
-              <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${hintsEnabled ? 'left-7' : 'left-1'}`} />
+          </div>
+
+          {/* Impostors Know Each Other Toggle */}
+          <div 
+            className={`relative overflow-hidden p-4 rounded-xl border transition-all cursor-pointer group ${impostorsKnowEachOther ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600'}`} 
+            onClick={() => setImpostorsKnowEachOther(!impostorsKnowEachOther)}
+          >
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full transition-colors ${impostorsKnowEachOther ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-700/50 text-slate-400'}`}>
+                  <Users size={20} fill={impostorsKnowEachOther ? "currentColor" : "none"} />
+                </div>
+                <div>
+                  <p className={`font-bold transition-colors ${impostorsKnowEachOther ? 'text-indigo-200' : 'text-slate-300'}`}>Los impostores se conocen</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Revela a los aliados entre sí</p>
+                </div>
+              </div>
+              <div className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${impostorsKnowEachOther ? 'bg-indigo-500' : 'bg-slate-700'}`}>
+                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${impostorsKnowEachOther ? 'left-7' : 'left-1'}`} />
+              </div>
             </div>
           </div>
         </div>

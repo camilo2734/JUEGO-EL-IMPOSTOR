@@ -6,6 +6,7 @@ export interface Player {
   name: string;
   role: Role;
   word?: string; // Impostors might have a hint phrase now
+  otherImpostors?: string[]; // Names of other impostors if the setting is enabled
 }
 
 export enum GameStep {
@@ -34,6 +35,7 @@ export interface GameConfig {
   impostorCount: number;
   selectedCategoryIds: string[];
   hintsEnabled: boolean;
+  impostorsKnowEachOther: boolean; // New setting
   customCategoryName: string;
   customCategoryWords: string;
   playerNames: string[];

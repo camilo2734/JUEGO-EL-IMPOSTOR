@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Lightbulb, ShieldAlert, Fingerprint } from 'lucide-react';
+import { Eye, EyeOff, User, Lightbulb, ShieldAlert, Fingerprint, Users } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Player } from '../types';
@@ -10,6 +11,7 @@ interface RoleRevealScreenProps {
   totalPlayers: number;
   onNext: () => void;
   hintsEnabled?: boolean;
+  impostorsKnowEachOther?: boolean;
 }
 
 export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({ 
@@ -17,7 +19,8 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
   playerIndex, 
   totalPlayers, 
   onNext,
-  hintsEnabled = false
+  hintsEnabled = false,
+  impostorsKnowEachOther = false
 }) => {
   const [isRevealed, setIsRevealed] = useState(false);
 
@@ -72,8 +75,19 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
                    </div>
                    <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-rose-400 to-red-600 mb-2 drop-shadow-sm">IMPOSTOR</h2>
                    
+                   {/* Known Impostors Section */}
+                   {impostorsKnowEachOther && player.otherImpostors && player.otherImpostors.length > 0 && (
+                     <div className="my-4 p-3 bg-black/40 rounded-xl border border-rose-500/20 inline-block w-full max-w-xs">
+                        <div className="flex items-center justify-center gap-2 text-rose-300 mb-1">
+                          <Users size={14} />
+                          <span className="text-xs uppercase font-bold tracking-wider">Los otros impostores son:</span>
+                        </div>
+                        <p className="text-white font-bold leading-tight">{player.otherImpostors.join(', ')}</p>
+                     </div>
+                   )}
+
                    {hintsEnabled && player.word ? (
-                     <div className="mt-8 bg-rose-950/40 border border-rose-500/30 p-5 rounded-2xl backdrop-blur-md">
+                     <div className="mt-4 bg-rose-950/40 border border-rose-500/30 p-5 rounded-2xl backdrop-blur-md">
                        <div className="flex items-center justify-center gap-2 text-rose-300 mb-2">
                          <Lightbulb size={16} className="text-amber-400" />
                          <span className="text-xs uppercase font-bold tracking-wider text-rose-300">Pista Clave</span>
@@ -82,7 +96,11 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
                        <p className="text-rose-400/60 text-xs mt-3 font-medium">Usa esto para mezclarte entre los civiles.</p>
                      </div>
                    ) : (
-                     <p className="text-rose-300/80 text-sm font-medium mt-4">Nadie sabe quién eres. Miente para sobrevivir.</p>
+                     <p className="text-rose-300/80 text-sm font-medium mt-4">
+                        {impostorsKnowEachOther && player.otherImpostors && player.otherImpostors.length > 0
+                          ? "Trabajen juntos para engañar a los civiles." 
+                          : "Nadie sabe quién eres. Miente para sobrevivir."}
+                     </p>
                    )}
                 </div>
               ) : (

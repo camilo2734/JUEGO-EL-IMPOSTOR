@@ -29,6 +29,7 @@ const App: React.FC = () => {
   });
   
   const [isHintsMode, setIsHintsMode] = useState(false);
+  const [impostorsKnowEachOther, setImpostorsKnowEachOther] = useState(false);
 
   const startGame = (config: GameConfig) => {
     // 1. Resolve selected categories into a list of items
@@ -84,6 +85,7 @@ const App: React.FC = () => {
     }
 
     setIsHintsMode(config.hintsEnabled);
+    setImpostorsKnowEachOther(config.impostorsKnowEachOther);
 
     // Create Players with names
     const newPlayers: Player[] = config.playerNames.map((playerName, i) => ({
@@ -107,6 +109,21 @@ const App: React.FC = () => {
           delete newPlayers[randomIndex].word;
         }
         impostorsAssigned++;
+      }
+    }
+
+    // Logic for "Impostors know each other"
+    if (config.impostorsKnowEachOther) {
+      const impostorNames = newPlayers
+        .filter(p => p.role === 'IMPOSTOR')
+        .map(p => p.name);
+
+      if (impostorNames.length > 1) {
+        newPlayers.forEach(p => {
+          if (p.role === 'IMPOSTOR') {
+            p.otherImpostors = impostorNames.filter(name => name !== p.name);
+          }
+        });
       }
     }
 
@@ -150,6 +167,7 @@ const App: React.FC = () => {
             totalPlayers={players.length}
             onNext={handleNextReveal}
             hintsEnabled={isHintsMode}
+            impostorsKnowEachOther={impostorsKnowEachOther}
           />
         );
       case GameStep.PLAYING:
