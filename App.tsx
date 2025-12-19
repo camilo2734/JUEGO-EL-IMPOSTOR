@@ -32,49 +32,46 @@ const App: React.FC = () => {
   const [impostorsKnowEachOther, setImpostorsKnowEachOther] = useState(false);
 
   const startGame = (config: GameConfig) => {
-    // 1. Resolve selected categories into a list of items
-    const activePools: { name: string, items: WordItem[] }[] = [];
+    // 1. Resolve all selected categories into a single flattened list of possible items
+    // This ensures every single word has an equal probability of being chosen (1/total_words)
+    const allAvailableItems: { item: WordItem, categoryName: string }[] = [];
 
-    // Add standard categories
     config.selectedCategoryIds.forEach(id => {
-      if (id === 'custom') return;
+      if (id === 'custom') {
+        if (config.customCategoryWords.length > 0) {
+          const words = config.customCategoryWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
+          words.forEach(w => {
+            allAvailableItems.push({
+              item: { target: w, hint: 'Improvisa' },
+              categoryName: config.customCategoryName || 'Personalizada'
+            });
+          });
+        }
+        return;
+      }
+      
       const cat = CATEGORIES.find(c => c.id === id);
-      if (cat) activePools.push({ 
-        name: cat.name, 
-        items: cat.items
-      });
-    });
-
-    // Add custom category if selected
-    if (config.selectedCategoryIds.includes('custom') && config.customCategoryWords.length > 0) {
-      const words = config.customCategoryWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
-      if (words.length > 0) {
-        // For custom categories, we can't generate descriptive hints easily.
-        // We'll use a generic fallback.
-        const customItems: WordItem[] = words.map(w => ({
-          target: w,
-          hint: 'Improvisa' 
-        }));
-        
-        activePools.push({ 
-          name: config.customCategoryName || 'Personalizada', 
-          items: customItems
+      if (cat) {
+        cat.items.forEach(item => {
+          allAvailableItems.push({
+            item: item,
+            categoryName: cat.name
+          });
         });
       }
-    }
+    });
 
-    if (activePools.length === 0) return;
+    if (allAvailableItems.length === 0) return;
 
-    // 2. Pick a random pool
-    const selectedPool = activePools[Math.floor(Math.random() * activePools.length)];
+    // 2. Pick a random item from the entire combined pool (True randomness)
+    const randomIndex = Math.floor(Math.random() * allAvailableItems.length);
+    const selected = allAvailableItems[randomIndex];
     
-    // 3. Pick a random item (Target + Hint)
-    const selectedItem = selectedPool.items[Math.floor(Math.random() * selectedPool.items.length)];
-    const secretWord = selectedItem.target;
-    const hintWord = selectedItem.hint;
+    const secretWord = selected.item.target;
+    const hintWord = selected.item.hint;
 
     setCurrentWord(secretWord);
-    setCategoryName(selectedPool.name); 
+    setCategoryName(selected.categoryName); 
     
     // Save config to state and LocalStorage to persist custom categories
     setLastConfig(config);
@@ -98,15 +95,15 @@ const App: React.FC = () => {
     // Assign Impostors randomly
     let impostorsAssigned = 0;
     while (impostorsAssigned < config.impostorCount) {
-      const randomIndex = Math.floor(Math.random() * config.totalPlayers);
-      if (newPlayers[randomIndex].role === 'CIVILIAN') {
-        newPlayers[randomIndex].role = 'IMPOSTOR';
+      const rIndex = Math.floor(Math.random() * config.totalPlayers);
+      if (newPlayers[rIndex].role === 'CIVILIAN') {
+        newPlayers[rIndex].role = 'IMPOSTOR';
         
         // If hints enabled, give them the descriptive hint
         if (config.hintsEnabled) {
-          newPlayers[randomIndex].word = hintWord;
+          newPlayers[rIndex].word = hintWord;
         } else {
-          delete newPlayers[randomIndex].word;
+          delete newPlayers[rIndex].word;
         }
         impostorsAssigned++;
       }
