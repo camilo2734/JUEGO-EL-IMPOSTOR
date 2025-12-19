@@ -5,10 +5,23 @@ import { SetupScreen } from './components/SetupScreen';
 import { RoleRevealScreen } from './components/RoleRevealScreen';
 import { GameScreen } from './components/GameScreen';
 import { SummaryScreen } from './components/SummaryScreen';
-import { GameStep, GameConfig, Player, WordItem } from './types';
+import { GameStep, GameConfig, Player, WordItem, Role } from './types';
 import { CATEGORIES } from './constants';
 
 const STORAGE_KEY = 'impostor_game_config_v1';
+
+/**
+ * Algoritmo Fisher-Yates para garantizar aleatoriedad pura sin sesgos estadísticos.
+ * Crea una copia del array para no mutar el original.
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
 
 const App: React.FC = () => {
   const [gameStep, setGameStep] = useState<GameStep>(GameStep.HOME);
@@ -17,7 +30,6 @@ const App: React.FC = () => {
   const [categoryName, setCategoryName] = useState<string>('');
   const [revealIndex, setRevealIndex] = useState(0);
   
-  // Initialize config from LocalStorage if available so custom categories persist
   const [lastConfig, setLastConfig] = useState<GameConfig | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -32,11 +44,13 @@ const App: React.FC = () => {
   const [impostorsKnowEachOther, setImpostorsKnowEachOther] = useState(false);
 
   const startGame = (config: GameConfig) => {
-    // 1. Resolve all selected categories into a single flattened list of possible items
-    // This ensures every single word has an equal probability of being chosen (1/total_words)
+    // 1. Consolidación y Aleatorización del Pool de Palabras
     const allAvailableItems: { item: WordItem, categoryName: string }[] = [];
+    
+    // Deduplicamos las categorías para evitar sesgos si una ID se repite en la config
+    const uniqueCategoryIds = Array.from(new Set(config.selectedCategoryIds));
 
-    config.selectedCategoryIds.forEach(id => {
+    uniqueCategoryIds.forEach(id => {
       if (id === 'custom') {
         if (config.customCategoryWords.length > 0) {
           const words = config.customCategoryWords.split(',').map(w => w.trim()).filter(w => w.length > 0);
@@ -63,9 +77,9 @@ const App: React.FC = () => {
 
     if (allAvailableItems.length === 0) return;
 
-    // 2. Pick a random item from the entire combined pool (True randomness)
-    const randomIndex = Math.floor(Math.random() * allAvailableItems.length);
-    const selected = allAvailableItems[randomIndex];
+    // Barajamos el pool antes de elegir para máxima entropía
+    const shuffledPool = shuffleArray(allAvailableItems);
+    const selected = shuffledPool[Math.floor(Math.random() * shuffledPool.length)];
     
     const secretWord = selected.item.target;
     const hintWord = selected.item.hint;
@@ -73,7 +87,6 @@ const App: React.FC = () => {
     setCurrentWord(secretWord);
     setCategoryName(selected.categoryName); 
     
-    // Save config to state and LocalStorage to persist custom categories
     setLastConfig(config);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
@@ -84,32 +97,28 @@ const App: React.FC = () => {
     setIsHintsMode(config.hintsEnabled);
     setImpostorsKnowEachOther(config.impostorsKnowEachOther);
 
-    // Create Players with names
-    const newPlayers: Player[] = config.playerNames.map((playerName, i) => ({
-      id: i,
-      name: playerName,
-      role: 'CIVILIAN',
-      word: secretWord
-    }));
-
-    // Assign Impostors randomly
-    let impostorsAssigned = 0;
-    while (impostorsAssigned < config.impostorCount) {
-      const rIndex = Math.floor(Math.random() * config.totalPlayers);
-      if (newPlayers[rIndex].role === 'CIVILIAN') {
-        newPlayers[rIndex].role = 'IMPOSTOR';
-        
-        // If hints enabled, give them the descriptive hint
-        if (config.hintsEnabled) {
-          newPlayers[rIndex].word = hintWord;
-        } else {
-          delete newPlayers[rIndex].word;
-        }
-        impostorsAssigned++;
-      }
+    // 2. Asignación Robusta de Roles
+    // Generamos la lista exacta de roles y la barajamos
+    const rolePool: Role[] = new Array(config.totalPlayers).fill('CIVILIAN' as Role);
+    for (let i = 0; i < config.impostorCount; i++) {
+      rolePool[i] = 'IMPOSTOR';
     }
+    
+    const shuffledRoles = shuffleArray(rolePool);
 
-    // Logic for "Impostors know each other"
+    // Mapeamos los nombres a los roles ya barajados
+    const newPlayers: Player[] = config.playerNames.map((playerName, i) => {
+      const assignedRole = shuffledRoles[i];
+      const player: Player = {
+        id: i,
+        name: playerName,
+        role: assignedRole,
+        word: assignedRole === 'CIVILIAN' ? secretWord : (config.hintsEnabled ? hintWord : undefined)
+      };
+      return player;
+    });
+
+    // 3. Lógica de Impostores aliados
     if (config.impostorsKnowEachOther) {
       const impostorNames = newPlayers
         .filter(p => p.role === 'IMPOSTOR')
@@ -190,11 +199,11 @@ const App: React.FC = () => {
 
   return (
     <div className="relative min-h-screen text-slate-100 font-sans selection:bg-indigo-500/30 overflow-hidden">
-      {/* Dynamic Background */}
+      {/* Background Dinámico */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-black z-0 pointer-events-none"></div>
       <div className="fixed inset-0 bg-grid-pattern z-0 pointer-events-none opacity-40"></div>
       
-      {/* Content */}
+      {/* Contenido Principal */}
       <div className="relative z-10">
         {renderScreen()}
       </div>
