@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Users, Check, Lightbulb, Settings, Lock, Unlock, X, Eye } from 'lucide-react';
+import { ArrowLeft, User, Users, Check, Lightbulb, Settings, Lock, Unlock, X, Eye, Trash2 } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { CATEGORIES } from '../constants';
@@ -26,7 +26,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
   const [playerNames, setPlayerNames] = useState<string[]>(lastConfig?.playerNames ?? []);
 
   // Locking Logic
-  // Helper to read persisted unlocked categories
   const getSavedUnlocked = (): string[] => {
     try {
       const saved = localStorage.getItem(UNLOCKED_STORAGE_KEY);
@@ -45,23 +44,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
 
   // Initialize selected categories
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(() => {
-    // Default to the first non-locked category found
     const defaultId = CATEGORIES.find(c => !c.isLocked)?.id || CATEGORIES[0].id;
-    
     const saved = lastConfig?.selectedCategoryIds;
     if (!saved || saved.length === 0) return [defaultId];
-
-    // Get currently unlocked list to validate selection
     const currentUnlocked = getSavedUnlocked();
-
-    // Filter out categories that are locked AND not in the unlocked list
     const validIds = saved.filter(id => {
       if (id === 'custom') return true;
       const cat = CATEGORIES.find(c => c.id === id);
-      // It's valid if the category exists AND (it's not locked OR we have unlocked it previously)
       return cat && (!cat.isLocked || currentUnlocked.includes(id));
     });
-
     return validIds.length > 0 ? validIds : [defaultId];
   });
 
@@ -72,7 +63,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
         for (let i = prev.length; i < totalPlayers; i++) {
           newNames.push('');
         }
-      } else {
+      } else if (totalPlayers < prev.length) {
         newNames.length = totalPlayers;
       }
       return newNames;
@@ -85,10 +76,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
     setPlayerNames(newNames);
   };
 
+  const handleRemovePlayer = (index: number) => {
+    if (totalPlayers <= 3) return; // Mínimo 3 jugadores
+    
+    const newNames = playerNames.filter((_, i) => i !== index);
+    const newTotal = totalPlayers - 1;
+    
+    setPlayerNames(newNames);
+    setTotalPlayers(newTotal);
+    
+    // Ajustar impostores si es necesario
+    if (impostorCount >= newTotal) {
+      setImpostorCount(newTotal - 1);
+    }
+  };
+
   const toggleCategory = (id: string) => {
     const category = CATEGORIES.find(c => c.id === id);
-    
-    // Check lock status: If locked and NOT unlocked
     if (category?.isLocked && !unlockedCategories.includes(id)) {
       setCategoryToUnlock(id);
       setUnlockCode('');
@@ -111,7 +115,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
     e.preventDefault();
     if (unlockCode === '2711') {
       if (categoryToUnlock) {
-        // Update state and localStorage
         const newUnlockedList = [...unlockedCategories, categoryToUnlock];
         setUnlockedCategories(newUnlockedList);
         try {
@@ -119,8 +122,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
         } catch (e) {
           console.error("Error saving unlocked categories", e);
         }
-
-        // Automatically select it after unlocking
         setSelectedCategoryIds(prev => [...prev, categoryToUnlock]);
       }
       setShowUnlockModal(false);
@@ -133,14 +134,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
   const isCustomSelected = selectedCategoryIds.includes('custom');
 
   const handleStart = () => {
-    // Final security check: Remove any locked category that isn't unlocked
     const safeSelectedIds = selectedCategoryIds.filter(id => {
        if (id === 'custom') return true;
        const cat = CATEGORIES.find(c => c.id === id);
        return cat && (!cat.isLocked || unlockedCategories.includes(id));
     });
 
-    // Fallback if everything was filtered out
     const finalSelectedIds = safeSelectedIds.length > 0 
         ? safeSelectedIds 
         : [CATEGORIES.find(c => !c.isLocked)?.id || CATEGORIES[0].id];
@@ -203,19 +202,30 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
         {/* Player Names Input Grid */}
         <div className="space-y-4 animate-fade-in">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nombres</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="grid grid-cols-1 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
             {playerNames.map((name, index) => (
-              <div key={index} className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User size={16} className="text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+              <div key={index} className="flex items-center gap-2 group">
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User size={16} className="text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                  </div>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => handleNameChange(index, e.target.value)}
+                    placeholder={`Jugador ${index + 1}`}
+                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 pr-3 text-white text-sm focus:border-indigo-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => handleNameChange(index, e.target.value)}
-                  placeholder={`Jugador ${index + 1}`}
-                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl py-3 pl-10 pr-3 text-white text-sm focus:border-indigo-500/50 focus:bg-slate-800 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
-                />
+                {totalPlayers > 3 && (
+                  <button 
+                    onClick={() => handleRemovePlayer(index)}
+                    className="p-3 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all border border-transparent hover:border-rose-500/20"
+                    title="Eliminar jugador"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -233,7 +243,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
 
         {/* Toggles Container */}
         <div className="space-y-3">
-          {/* Hints Toggle */}
           <div 
             className={`relative overflow-hidden p-4 rounded-xl border transition-all cursor-pointer group ${hintsEnabled ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600'}`} 
             onClick={() => setHintsEnabled(!hintsEnabled)}
@@ -254,7 +263,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartGame, onBack, l
             </div>
           </div>
 
-          {/* Impostors Know Each Other Toggle */}
           <div 
             className={`relative overflow-hidden p-4 rounded-xl border transition-all cursor-pointer group ${impostorsKnowEachOther ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600'}`} 
             onClick={() => setImpostorsKnowEachOther(!impostorsKnowEachOther)}

@@ -94,22 +94,6 @@ export const CATEGORIES: Category[] = [
       ['Yann Sommer', 'Suiza'],
       ['Alex Meret', 'Italia'],
       ['Dani Olmo', 'España'],
-      ['Papu Gómez', 'Argentina'],
-      ['Lucas Ocampos', 'Argentina'],
-      ['Wilfried Zaha', 'Costa de Marfil'],
-      ['Josko Gvardiol', 'Croacia'],
-      ['Milan Škriniar', 'Eslovaquia'],
-      ['Kalvin Phillips', 'Inglaterra'],
-      ['James Maddison', 'Inglaterra'],
-      ['Trevoh Chalobah', 'Inglaterra'],
-      ['Leandro Paredes', 'Argentina'],
-      ['Bryan Cristante', 'Italia'],
-      ['Nicolò Barella', 'Italia'],
-      ['Giovani Lo Celso', 'Argentina'],
-      ['Hugo Lloris', 'Francia'],
-      ['Kepa Arrizabalaga', 'España'],
-      ['Aaron Ramsdale', 'Inglaterra'],
-      ['Jordan Pickford', 'Inglaterra']
     ])
   },
   {
@@ -239,7 +223,7 @@ export const CATEGORIES: Category[] = [
   },
   {
     id: 'professors',
-    name: 'Profesiones',
+    name: 'Profesores',
     isLocked: true,
     items: createItems([
       ['Gabriel', 'Docente'],
