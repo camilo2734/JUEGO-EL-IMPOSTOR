@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Settings, X, ShieldCheck, Lock, Check, UserPlus, Zap, RefreshCw } from 'lucide-react';
+import { Settings, X, ShieldCheck, Lock, Check, UserPlus, Zap } from 'lucide-react';
 import { HomeScreen } from './components/HomeScreen';
 import { SetupScreen } from './components/SetupScreen';
 import { RoleRevealScreen } from './components/RoleRevealScreen';
@@ -13,7 +13,8 @@ import { CATEGORIES } from './constants';
 const STORAGE_KEY = 'impostor_game_config_v1';
 const MASTER_KEY = '2729';
 
-function shuffleArray<T>(array: T[]): T[] {
+// Fisher-Yates shuffle algorithm to randomize an array
+function shuffle<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -28,7 +29,6 @@ const App: React.FC = () => {
   const [currentWord, setCurrentWord] = useState<string>('');
   const [categoryName, setCategoryName] = useState<string>('');
   const [revealIndex, setRevealIndex] = useState(0);
-  const [seconds, setSeconds] = useState(0);
   
   const [lastConfig, setLastConfig] = useState<GameConfig | null>(() => {
     try {
@@ -53,11 +53,6 @@ const App: React.FC = () => {
   const [manualImpostorEnabled, setManualImpostorEnabled] = useState(false);
   const [manualImpostorIndices, setManualImpostorIndices] = useState<number[]>([]);
   const [chaosModeEnabled, setChaosModeEnabled] = useState(false);
-  const [impostorSwapEnabled, setImpostorSwapEnabled] = useState(false);
-  
-  // Internal Swap Logic State
-  const [swapTime, setSwapTime] = useState<number | null>(null);
-  const [hasSwapped, setHasSwapped] = useState(false);
 
   const handleSettingsAccess = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,77 +84,6 @@ const App: React.FC = () => {
     });
   };
 
-  // Timer and Swap Logic Effect
-  useEffect(() => {
-    let interval: number;
-    if (gameStep === GameStep.PLAYING) {
-      interval = window.setInterval(() => {
-        setSeconds(s => {
-          const nextSec = s + 1;
-          
-          // Check for silent impostor swap
-          if (impostorSwapEnabled && swapTime !== null && nextSec === swapTime && !hasSwapped) {
-            performSilentSwap();
-          }
-          
-          return nextSec;
-        });
-      }, 1000);
-    } else {
-      setSeconds(0);
-    }
-    return () => clearInterval(interval);
-  }, [gameStep, impostorSwapEnabled, swapTime, hasSwapped]);
-
-  const performSilentSwap = () => {
-    setPlayers(currentPlayers => {
-      const impostorIndices = currentPlayers
-        .map((p, i) => p.role === 'IMPOSTOR' ? i : -1)
-        .filter(i => i !== -1);
-      
-      const civilianIndices = currentPlayers
-        .map((p, i) => p.role === 'CIVILIAN' ? i : -1)
-        .filter(i => i !== -1);
-
-      if (impostorIndices.length === 0 || civilianIndices.length === 0) return currentPlayers;
-
-      // Pick one random impostor to lose their role
-      const oldImpostorIdx = impostorIndices[Math.floor(Math.random() * impostorIndices.length)];
-      // Pick one random civilian to become the new impostor
-      const newImpostorIdx = civilianIndices[Math.floor(Math.random() * civilianIndices.length)];
-
-      const nextPlayers = [...currentPlayers];
-      
-      // Swap roles
-      nextPlayers[oldImpostorIdx] = { ...nextPlayers[oldImpostorIdx], role: 'CIVILIAN' };
-      nextPlayers[newImpostorIdx] = { ...nextPlayers[newImpostorIdx], role: 'IMPOSTOR' };
-
-      // Update "others impostors" list if that feature is on
-      if (impostorsKnowEachOther) {
-        const updatedImpostorNames = nextPlayers
-          .filter(p => p.role === 'IMPOSTOR')
-          .map(p => p.name);
-          
-        nextPlayers.forEach((p, i) => {
-          if (p.role === 'IMPOSTOR') {
-            nextPlayers[i] = {
-              ...p,
-              otherImpostors: updatedImpostorNames.filter(name => name !== p.name)
-            };
-          } else {
-            // Remove otherImpostors if they are now civilian
-            const { otherImpostors, ...rest } = p;
-            nextPlayers[i] = rest as Player;
-          }
-        });
-      }
-
-      return nextPlayers;
-    });
-    setHasSwapped(true);
-    console.debug("Silent swap executed.");
-  };
-
   const startGame = (config: GameConfig) => {
     const allAvailableItems: { item: WordItem, categoryName: string }[] = [];
     const uniqueCategoryIds = Array.from(new Set(config.selectedCategoryIds));
@@ -187,7 +111,7 @@ const App: React.FC = () => {
 
     if (allAvailableItems.length === 0) return;
 
-    const shuffledPool = shuffleArray(allAvailableItems);
+    const shuffledPool = shuffle(allAvailableItems);
     
     setLastConfig(config);
     try {
@@ -215,7 +139,7 @@ const App: React.FC = () => {
     const availableSlots = Array.from({ length: config.totalPlayers }, (_, i) => i)
       .filter(i => finalRoles[i] !== 'IMPOSTOR');
     
-    const shuffledSlots = shuffleArray(availableSlots);
+    const shuffledSlots = shuffle(availableSlots);
     for (let i = 0; i < impostorsToAssign; i++) {
       if (shuffledSlots[i] !== undefined) {
         finalRoles[shuffledSlots[i]] = 'IMPOSTOR';
@@ -260,16 +184,6 @@ const App: React.FC = () => {
       }
     }
 
-    // Prepare silent swap time
-    if (impostorSwapEnabled) {
-      // Pick a random time between 40 and 120 seconds for the "round" change
-      setSwapTime(Math.floor(Math.random() * (120 - 40 + 1)) + 40);
-    } else {
-      setSwapTime(null);
-    }
-    setHasSwapped(false);
-    setSeconds(0);
-
     setPlayers(newPlayers);
     setRevealIndex(0);
     setGameStep(GameStep.REVEAL_ROLES);
@@ -288,7 +202,6 @@ const App: React.FC = () => {
     setPlayers([]);
     setCurrentWord('');
     setRevealIndex(0);
-    setSeconds(0);
   };
 
   const renderScreen = () => {
@@ -320,7 +233,6 @@ const App: React.FC = () => {
             onEndGame={() => setGameStep(GameStep.SUMMARY)} 
             categoryName={categoryName}
             players={players}
-            secondsProp={seconds}
           />
         );
       case GameStep.SUMMARY:
@@ -345,7 +257,7 @@ const App: React.FC = () => {
         onClick={() => setShowSettings(true)}
         className="fixed top-6 right-6 z-[100] p-3 bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-300 shadow-lg active:scale-95 group"
       >
-        <Settings size={24} className={`group-hover:rotate-90 transition-transform duration-500 ${manualImpostorEnabled || chaosModeEnabled || impostorSwapEnabled ? "text-indigo-400" : ""}`} />
+        <Settings size={24} className={`group-hover:rotate-90 transition-transform duration-500 ${manualImpostorEnabled || chaosModeEnabled ? "text-indigo-400" : ""}`} />
       </button>
 
       <div className="relative z-10">
@@ -470,33 +382,6 @@ const App: React.FC = () => {
                       <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${chaosModeEnabled ? 'left-7' : 'left-1'}`} />
                     </div>
                   </div>
-
-                  {/* Silent Swap Mechanic */}
-                  <div 
-                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer ${impostorSwapEnabled ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-white/5 border-white/5'}`}
-                    onClick={() => setImpostorSwapEnabled(!impostorSwapEnabled)}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2.5 rounded-xl ${impostorSwapEnabled ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
-                        <RefreshCw size={20} className={impostorSwapEnabled ? 'animate-spin-slow' : ''} />
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-200">Cambio de impostor</p>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Intercambio Silencioso</p>
-                      </div>
-                    </div>
-                    <div className={`w-14 h-8 rounded-full relative transition-colors duration-300 ${impostorSwapEnabled ? 'bg-indigo-600 shadow-lg shadow-indigo-600/20' : 'bg-slate-700'}`}>
-                      <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ${impostorSwapEnabled ? 'left-7' : 'left-1'}`} />
-                    </div>
-                  </div>
-                  
-                  {impostorSwapEnabled && (
-                    <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl animate-fade-in">
-                      <p className="text-[10px] text-indigo-200/70 font-medium leading-relaxed">
-                        Durante la partida, el impostor puede cambiar sin que nadie lo sepa. Ocurrirá una sola vez y de forma aleatoria.
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="pt-4 border-t border-white/5">
@@ -507,15 +392,6 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      <style>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}</style>
     </div>
   );
 };
