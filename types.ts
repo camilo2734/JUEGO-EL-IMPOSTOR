@@ -40,5 +40,6 @@ export interface GameConfig {
   customCategoryWords: string;
   playerNames: string[];
   manualImpostorEnabled?: boolean;
-  manualImpostorIndex?: number | null;
+  manualImpostorIndices?: number[];
+  chaosModeEnabled?: boolean;
 }
