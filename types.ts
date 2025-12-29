@@ -35,8 +35,10 @@ export interface GameConfig {
   impostorCount: number;
   selectedCategoryIds: string[];
   hintsEnabled: boolean;
-  impostorsKnowEachOther: boolean; // New setting
+  impostorsKnowEachOther: boolean;
   customCategoryName: string;
   customCategoryWords: string;
   playerNames: string[];
+  manualImpostorEnabled?: boolean;
+  manualImpostorIndex?: number | null;
 }
