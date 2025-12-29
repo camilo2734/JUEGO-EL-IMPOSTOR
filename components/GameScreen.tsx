@@ -9,10 +9,11 @@ interface GameScreenProps {
   onEndGame: () => void;
   categoryName: string;
   players: Player[];
+  secondsProp?: number;
 }
 
-export const GameScreen: React.FC<GameScreenProps> = ({ onEndGame, categoryName, players }) => {
-  const [seconds, setSeconds] = useState(0);
+export const GameScreen: React.FC<GameScreenProps> = ({ onEndGame, categoryName, players, secondsProp }) => {
+  const [internalSeconds, setInternalSeconds] = useState(0);
   const [startingPlayer, setStartingPlayer] = useState<string>('');
 
   useEffect(() => {
@@ -21,12 +22,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onEndGame, categoryName,
       const randomPlayer = players[Math.floor(Math.random() * players.length)];
       setStartingPlayer(randomPlayer.name);
     }
+    
+    // If seconds are managed externally, we don't need the local interval
+    if (secondsProp === undefined) {
+      const interval = setInterval(() => {
+        setInternalSeconds(s => s + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [players, secondsProp]);
 
-    const interval = setInterval(() => {
-      setSeconds(s => s + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [players]);
+  const displaySeconds = secondsProp !== undefined ? secondsProp : internalSeconds;
 
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -68,7 +74,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onEndGame, categoryName,
             <span className="text-xs font-bold uppercase tracking-widest">Tiempo Transcurrido</span>
           </div>
           <h2 className="text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-            {formatTime(seconds)}
+            {formatTime(displaySeconds)}
           </h2>
         </div>
 

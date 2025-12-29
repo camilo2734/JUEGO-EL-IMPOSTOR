@@ -42,4 +42,5 @@ export interface GameConfig {
   manualImpostorEnabled?: boolean;
   manualImpostorIndices?: number[];
   chaosModeEnabled?: boolean;
+  impostorSwapEnabled?: boolean;
 }
